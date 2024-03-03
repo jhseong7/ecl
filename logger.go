@@ -112,12 +112,13 @@ func AddGlobalExtraStream(streams []ILogStream) {
 	globalExtraStreams = append(globalExtraStreams, streams...)
 }
 
-func (l *LoggerImpl) logWithColor(color, logLevel, msg string) {
+func (l *LoggerImpl) writeToStream(color, logLevel, msg string) {
 	// Get the current time here so that all streams have the same time
 	ct := time.Now().Format(time.RFC3339)
 
 	// For all streams
 	for _, stream := range l.Streams {
+		// Write the log message
 		stream.Write(LogMessage{
 			AppName: globalPrefix,
 			Name:    l.name,
@@ -131,11 +132,11 @@ func (l *LoggerImpl) logWithColor(color, logLevel, msg string) {
 }
 
 func (l *LoggerImpl) logWithColorf(color, logLevel, format string, args ...interface{}) {
-	l.logWithColor(color, logLevel, fmt.Sprintf(format, args...))
+	l.writeToStream(color, logLevel, fmt.Sprintf(format, args...))
 }
 
 func (l *LoggerImpl) Trace(msg string) {
-	l.logWithColor(Cyan, "TRACE", msg)
+	l.writeToStream(Cyan, "TRACE", msg)
 }
 
 func (l *LoggerImpl) Debug(msg string) {
@@ -145,33 +146,33 @@ func (l *LoggerImpl) Debug(msg string) {
 	}
 
 	// Blue
-	l.logWithColor(Blue, "DEBUG", msg)
+	l.writeToStream(Blue, "DEBUG", msg)
 }
 
 func (l *LoggerImpl) Log(msg string) {
 	// Green
-	l.logWithColor(Green, "LOG", msg)
+	l.writeToStream(Green, "LOG", msg)
 }
 
 func (l *LoggerImpl) Warn(msg string) {
 	// Yellow
-	l.logWithColor(Yellow, "WARN", msg)
+	l.writeToStream(Yellow, "WARN", msg)
 }
 
 func (l *LoggerImpl) Error(msg string) {
 	// Red
-	l.logWithColor(Red, "ERROR", msg)
+	l.writeToStream(Red, "ERROR", msg)
 }
 
 func (l *LoggerImpl) Fatal(msg string) {
 	// Red + Fatal + Exit(1)
-	l.logWithColor(Red, "FATAL", msg)
+	l.writeToStream(Red, "FATAL", msg)
 	log.Fatal(msg)
 }
 
 func (l *LoggerImpl) Panic(msg string) {
 	// Red + Panic + Exit(1)
-	l.logWithColor(Red, "PANIC", msg)
+	l.writeToStream(Red, "PANIC", msg)
 	panic(msg)
 }
 
