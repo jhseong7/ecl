@@ -26,6 +26,9 @@ type (
 
 		// Local log level. Default is All
 		LogLevel LogLevel
+
+		// Local App name. If set, this name will be added to all log messages as a prefix.
+		AppName string
 	}
 
 	Logger interface {
@@ -54,6 +57,7 @@ type (
 		Streams  []stream.ILogStream
 		name     string
 		loglevel LogLevel
+		appName  string
 	}
 
 	LogLevel int
@@ -113,10 +117,19 @@ func NewLogger(o LoggerOption) Logger {
 		loglevel = globalLoglevel
 	}
 
+	// Set appName
+	var appName string
+	if o.AppName != "" {
+		appName = o.AppName
+	} else {
+		appName = globalPrefix
+	}
+
 	return &LoggerImpl{
 		name:     o.Name,
 		Streams:  ss,
 		loglevel: loglevel,
+		appName:  appName,
 	}
 }
 
@@ -148,7 +161,7 @@ func (l *LoggerImpl) writeToStream(color, logLevel, msg string) {
 	for _, stream := range l.Streams {
 		// Write the log message
 		stream.Write(message.LogMessage{
-			AppName: globalPrefix,
+			AppName: l.appName,
 			Name:    l.name,
 			Time:    ct,
 			Color:   color,
