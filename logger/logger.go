@@ -1,30 +1,16 @@
-/**
-V2 Logger that is simalar to Spring Boot or NestJS logger supporting colours and names for log levels.
-*/
-
 package logger
 
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
+
+	"github.com/jhseong7/ecl/message"
+	"github.com/jhseong7/ecl/stream"
+	"github.com/jhseong7/ecl/style"
 )
 
 type (
-	LogMessage struct {
-		AppName string
-		Time    time.Time
-		Name    string
-		Color   string
-		Level   string
-		Msg     string
-	}
-
-	ILogStream interface {
-		Write(msg LogMessage)
-	}
-
 	LoggerOption struct {
 		// Name of the logger. This will be used as the logger's name to identify the logger
 		Name string
@@ -33,25 +19,30 @@ type (
 		Silent bool
 
 		// Extra streams to write to
-		ExtraStreams []ILogStream
+		ExtraStreams []stream.ILogStream
 
 		// Log style. Default is NestJsStyle
-		LogStyle string
+		LogStyle style.LogStyle
+
+		// Local log level. Default is All
+		LogLevel LogLevel
 	}
 
 	Logger interface {
+		Log(msg string)
 		Trace(msg string)
 		Debug(msg string)
-		Log(msg string)
+		Info(msg string)
 		Warn(msg string)
 		Error(msg string)
 		Fatal(msg string)
 		Panic(msg string)
 
-		// f functions
+		// format functions
+		Logf(format string, args ...interface{})
 		Tracef(format string, args ...interface{})
 		Debugf(format string, args ...interface{})
-		Logf(format string, args ...interface{})
+		Infof(format string, args ...interface{})
 		Warnf(format string, args ...interface{})
 		Errorf(format string, args ...interface{})
 		Fatalf(format string, args ...interface{})
@@ -60,22 +51,23 @@ type (
 
 	LoggerImpl struct {
 		Logger
-		Streams []ILogStream
-		name    string
+		Streams  []stream.ILogStream
+		name     string
+		loglevel LogLevel
 	}
+
+	LogLevel int
 )
 
-// Terminal colours
 const (
-	Reset  = "\033[0m"
-	Red    = "\033[31m"
-	Green  = "\033[32m"
-	Yellow = "\033[33m"
-	Blue   = "\033[34m"
-	Purple = "\033[35m"
-	Cyan   = "\033[36m"
-	Gray   = "\033[37m"
-	White  = "\033[97m"
+	All LogLevel = iota
+	Trace
+	Debug
+	Info
+	Warn
+	Error
+
+	// No options for Fatal and Panic (always print)
 )
 
 var (
@@ -83,24 +75,26 @@ var (
 	globalPrefix = "GoApp"
 
 	// Global extra streams
-	globalExtraStreams []ILogStream
+	globalExtraStreams []stream.ILogStream
 
 	// global logStyle
-	globalLogStyle = NestJsStyle
+	globalLogStyle style.LogStyle = style.DefaultStyle
+
+	globalLoglevel LogLevel
 )
 
 func NewLogger(o LoggerOption) Logger {
-	var ss []ILogStream
+	var ss []stream.ILogStream
 
 	if !o.Silent {
-		var logStyle string
+		var logStyle style.LogStyle
 		if o.LogStyle != "" {
 			logStyle = o.LogStyle
 		} else {
 			logStyle = globalLogStyle
 		}
 
-		ss = append(ss, NewStdOutStream(StdOutStreamOption{
+		ss = append(ss, stream.NewStdOutStream(stream.StdOutStreamOption{
 			LogStyle: logStyle,
 		}))
 	}
@@ -111,10 +105,24 @@ func NewLogger(o LoggerOption) Logger {
 	// Append extra streams
 	ss = append(ss, o.ExtraStreams...)
 
-	return &LoggerImpl{
-		name:    o.Name,
-		Streams: ss,
+	// Set loglevel
+	var loglevel LogLevel
+	if o.LogLevel != 0 {
+		loglevel = o.LogLevel
+	} else {
+		loglevel = globalLoglevel
 	}
+
+	return &LoggerImpl{
+		name:     o.Name,
+		Streams:  ss,
+		loglevel: loglevel,
+	}
+}
+
+// Set the log level for the app. This will be used for all loggers.
+func SetLogLevel(level LogLevel) {
+	globalLoglevel = level
 }
 
 // Set the global prefix for the logger. If set, this name will be added to all log messages as a prefix.
@@ -123,12 +131,12 @@ func SetAppName(prefix string) {
 }
 
 // Set the global log style for the logger. If set, this style will be used for all log messages.
-func SetLogStyle(style string) {
+func SetLogStyle(style style.LogStyle) {
 	globalLogStyle = style
 }
 
 // Add the streams to the global extra streams. This will be added to all loggers.
-func AddGlobalExtraStream(streams []ILogStream) {
+func AddGlobalExtraStream(streams []stream.ILogStream) {
 	globalExtraStreams = append(globalExtraStreams, streams...)
 }
 
@@ -139,7 +147,7 @@ func (l *LoggerImpl) writeToStream(color, logLevel, msg string) {
 	// For all streams
 	for _, stream := range l.Streams {
 		// Write the log message
-		stream.Write(LogMessage{
+		stream.Write(message.LogMessage{
 			AppName: globalPrefix,
 			Name:    l.name,
 			Time:    ct,
@@ -155,91 +163,133 @@ func (l *LoggerImpl) logWithColorf(color, logLevel, format string, args ...inter
 	l.writeToStream(color, logLevel, fmt.Sprintf(format, args...))
 }
 
-func (l *LoggerImpl) Trace(msg string) {
-	l.writeToStream(Cyan, "TRACE", msg)
-}
-
-func (l *LoggerImpl) Debug(msg string) {
-	// Check if runtime is development
-	if os.Getenv("RUNTIME") != "development" {
-		return
-	}
-
-	// Blue
-	l.writeToStream(Blue, "DEBUG", msg)
-}
-
 func (l *LoggerImpl) Log(msg string) {
 	// Green
-	l.writeToStream(Green, "LOG", msg)
-}
-
-func (l *LoggerImpl) Warn(msg string) {
-	// Yellow
-	l.writeToStream(Yellow, "WARN", msg)
-}
-
-func (l *LoggerImpl) Error(msg string) {
-	// Red
-	l.writeToStream(Red, "ERROR", msg)
-}
-
-func (l *LoggerImpl) Fatal(msg string) {
-	// Red + Fatal + Exit(1)
-	l.writeToStream(Red, "FATAL", msg)
-	log.Fatal(msg)
-}
-
-func (l *LoggerImpl) Panic(msg string) {
-	// Red + Panic + Exit(1)
-	l.writeToStream(Red, "PANIC", msg)
-	panic(msg)
-}
-
-// Formatted Trace log. Use this like fmt.Printf
-func (l *LoggerImpl) Tracef(format string, args ...interface{}) {
-	l.logWithColorf(Cyan, "TRACE", format, args...)
-}
-
-// Formatted Debug log. Use this like fmt.Printf
-func (l *LoggerImpl) Debugf(format string, args ...interface{}) {
-	// Check if runtime is development
-	if os.Getenv("RUNTIME") != "development" {
-		return
-	}
-
-	// Blue
-	l.logWithColorf(Blue, "DEBUG", format, args...)
+	l.writeToStream(style.Green, "LOG", msg)
 }
 
 // Formatted Log log. Use this like fmt.Printf
 func (l *LoggerImpl) Logf(format string, args ...interface{}) {
 	// Green
-	l.logWithColorf(Green, "LOG", format, args...)
+	l.logWithColorf(style.Green, "LOG", format, args...)
+}
+
+func (l *LoggerImpl) Trace(msg string) {
+	if l.loglevel > Trace {
+		return
+	}
+
+	l.writeToStream(style.Purple, "TRACE", msg)
+}
+
+// Formatted Trace log. Use this like fmt.Printf
+func (l *LoggerImpl) Tracef(format string, args ...interface{}) {
+	if l.loglevel > Trace {
+		return
+	}
+
+	l.logWithColorf(style.Purple, "TRACE", format, args...)
+}
+
+func (l *LoggerImpl) Debug(msg string) {
+	if l.loglevel > Debug {
+		return
+	}
+
+	// Blue
+	l.writeToStream(style.Blue, "DEBUG", msg)
+}
+
+// Formatted Debug log. Use this like fmt.Printf
+func (l *LoggerImpl) Debugf(format string, args ...interface{}) {
+	if l.loglevel > Debug {
+		return
+	}
+
+	// Blue
+	l.logWithColorf(style.Blue, "DEBUG", format, args...)
+}
+
+func (l *LoggerImpl) Info(msg string) {
+	if l.loglevel > Info {
+		return
+	}
+
+	// Green
+	l.writeToStream(style.Cyan, "INFO", msg)
+}
+
+// Formatted Log log. Use this like fmt.Printf
+func (l *LoggerImpl) Infof(format string, args ...interface{}) {
+	if l.loglevel > Info {
+		return
+	}
+
+	// Green
+	l.logWithColorf(style.Cyan, "INFO", format, args...)
+}
+
+// Warn Log
+func (l *LoggerImpl) Warn(msg string) {
+	if l.loglevel > Warn {
+		return
+	}
+
+	// Yellow
+	l.writeToStream(style.Yellow, "WARN", msg)
 }
 
 // Formatted Warn log. Use this like fmt.Printf
 func (l *LoggerImpl) Warnf(format string, args ...interface{}) {
+	if l.loglevel > Warn {
+		return
+	}
+
 	// Yellow
-	l.logWithColorf(Yellow, "WARN", format, args...)
+	l.logWithColorf(style.Yellow, "WARN", format, args...)
+}
+
+func (l *LoggerImpl) Error(msg string) {
+	if l.loglevel > Error {
+		return
+	}
+
+	// Red
+	l.writeToStream(style.Red, "ERROR", msg)
 }
 
 // Formatted Error log. Use this like fmt.Printf
 func (l *LoggerImpl) Errorf(format string, args ...interface{}) {
+	if l.loglevel > Error {
+		return
+	}
+
 	// Red
-	l.logWithColorf(Red, "ERROR", format, args...)
+	l.logWithColorf(style.Red, "ERROR", format, args...)
+}
+
+func (l *LoggerImpl) Fatal(msg string) {
+	// Red + Fatal + Exit(1)
+	l.writeToStream(style.Red, "FATAL", msg)
+	log.Fatal(msg)
 }
 
 // Formatted Fatal log. Use this like fmt.Printf
 func (l *LoggerImpl) Fatalf(format string, args ...interface{}) {
 	// Red + Fatal + Exit(1)
-	l.logWithColorf(Red, "FATAL", format, args...)
+	l.logWithColorf(style.Red, "FATAL", format, args...)
 	log.Fatalf(format, args...)
+}
+
+func (l *LoggerImpl) Panic(msg string) {
+	// Red + Panic + Exit(1)
+	l.writeToStream(style.Red, "PANIC", msg)
+	panic(msg)
 }
 
 // Formatted Panic log. Use this like fmt.Printf
 func (l *LoggerImpl) Panicf(format string, args ...interface{}) {
 	// Red + Panic + Exit(1)
-	l.logWithColorf(Red, "PANIC", format, args...)
+	l.logWithColorf(style.Red, "PANIC", format, args...)
 	panic(fmt.Sprintf(format, args...))
 }

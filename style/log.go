@@ -1,30 +1,34 @@
-package logger
+package style
 
 import (
 	"fmt"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/jhseong7/ecl/message"
 )
 
 type (
-	StdOutStream struct {
-		ILogStream
-		logStyle string
-	}
-
-	StdOutStreamOption struct {
-		LogStyle string
-	}
+	LogStyle string
 )
 
 const (
-	NestJsStyle string = "nest"
-	SpringStyle string = "spring"
+	DefaultStyle LogStyle = "DEFAULT"
+	NestJsStyle  LogStyle = "NESTJS"
+	SpringStyle  LogStyle = "SPRING"
 )
 
 func colourize(color string, msg string) string {
 	return fmt.Sprintf("%s%s%s", color, msg, Reset)
+}
+
+func bold(msg string) string {
+	return fmt.Sprintf("%s%s%s", Bold, msg, Reset)
+}
+
+func italic(msg string) string {
+	return fmt.Sprintf("%s%s%s", Italic, msg, Reset)
 }
 
 // Pad the min width of a string to the front
@@ -43,7 +47,10 @@ func padMinWidthRight(s string, n int) string {
 	return s
 }
 
-func printNestStyleLog(msg LogMessage) {
+// Get the ECL default style log in string
+//
+// e.g.) [AppName] <pid> <time> <level> [<name>] <msg>
+func getDefaultStyleLog(msg message.LogMessage) string {
 	pid := os.Getpid()
 
 	// If the Name is empty, then set it to the default value
@@ -51,7 +58,27 @@ func printNestStyleLog(msg LogMessage) {
 		msg.Name = "default"
 	}
 
-	fmt.Printf(
+	return fmt.Sprintf(
+		"%s %s %s %s %s - %s\n",                                              // Format string
+		colourize(msg.Color, bold("["+msg.AppName+"]")),                      // Set colour
+		colourize(msg.Color, italic(padMinWidthRight(strconv.Itoa(pid), 6))), // Add the process id
+		colourize(White, msg.Time.Format(time.RFC3339)),                      // Add the time (time is white)
+		colourize(msg.Color, bold(padMinWidthRight(msg.Level, 6))),           // Add the log level
+		colourize(Yellow, padMinWidthRight("["+msg.Name+"]", 20)),            // Add the log name (name of the logger is yellow)
+		colourize(msg.Color, msg.Msg),                                        // Add the message
+	)
+}
+
+// Get the NestJS style log string
+func getNestjsStyleLog(msg message.LogMessage) string {
+	pid := os.Getpid()
+
+	// If the Name is empty, then set it to the default value
+	if msg.Name == "" {
+		msg.Name = "default"
+	}
+
+	return fmt.Sprintf(
 		"%s %-7s - %s %s %s %s\n",                                    // Format string
 		colourize(msg.Color, "["+msg.AppName+"]"),                    // Set colour
 		colourize(msg.Color, padMinWidthRight(strconv.Itoa(pid), 6)), // Add the process id
@@ -62,7 +89,8 @@ func printNestStyleLog(msg LogMessage) {
 	)
 }
 
-func printSpringStyleLog(msg LogMessage) {
+// Print Spring style log
+func getSpringStyleLog(msg message.LogMessage) string {
 	pid := os.Getpid()
 	thread := "main" // Thread is always main
 
@@ -72,7 +100,7 @@ func printSpringStyleLog(msg LogMessage) {
 	date := timeStr[:10]
 	time := timeStr[11:]
 
-	fmt.Printf(
+	return fmt.Sprintf(
 		"%s %s %s --- %s %s %s\n",                           // <date-time>  <log level> <process id> --- [<thread>] <logger> : <message>
 		colourize(White, date+" "+time),                     // Add the date-time (time is white)
 		colourize(msg.Color, padMinWidthLeft(msg.Level, 6)), // Add the log level
@@ -83,38 +111,16 @@ func printSpringStyleLog(msg LogMessage) {
 	)
 }
 
-func (s *StdOutStream) Write(msg LogMessage) {
-	// Print the log message to the console
-	switch s.logStyle {
+func GetMessageOfStyle(msg message.LogMessage, logStyle LogStyle) string {
+	// Get the log message in the given style
+	switch logStyle {
 	case NestJsStyle:
-		printNestStyleLog(msg)
+		return getNestjsStyleLog(msg)
 	case SpringStyle:
-		printSpringStyleLog(msg)
+		return getSpringStyleLog(msg)
+	case DefaultStyle:
+		return getDefaultStyleLog(msg)
 	default:
-		printNestStyleLog(msg)
+		return getDefaultStyleLog(msg)
 	}
-}
-
-func NewStdOutStream(options ...StdOutStreamOption) *StdOutStream {
-	// if len > 1, then it's an error
-	if len(options) > 1 {
-		panic("NewStdOutStream: Too many options")
-	}
-
-	// When an explicit log style is given
-	if len(options) == 1 {
-		return &StdOutStream{
-			logStyle: options[0].LogStyle,
-		}
-	}
-
-	// if the option is given via environment variable
-	logStyle := os.Getenv("LOG_STYLE")
-	if logStyle != "" {
-		return &StdOutStream{
-			logStyle: logStyle,
-		}
-	}
-
-	return &StdOutStream{}
 }

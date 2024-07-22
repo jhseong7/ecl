@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	ecl.SetLogStyle(style.SpringStyle)
+	ecl.SetLogStyle(style.NestJsStyle)
 
 	l := ecl.NewLogger(ecl.LoggerOption{
 		Name: "test",
