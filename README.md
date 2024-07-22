@@ -1,5 +1,7 @@
 # Enhanced Coloured Logger for Go (ECL)
 
+![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
+
 This is a utility logger that print the logs in with colour of the log level.
 
 Example:
@@ -12,17 +14,16 @@ Example:
 
 ## Log structure
 
-The log is consisted of the following components
+A typical log is consisted of the following components
 
 `[App name] Time LOGLEVEL [Logger Name] Message`
 
 - App name
   - The name of the app. This will help identify the source app of the log
 - Time
-  - The time of the log creation. ISO format
+  - The time of the log creation. `time.Time` type
 - Log Level
-  - The log level. (TRACE, DEBUG, LOG, WARN, ERROR, FATAL, PANIC)
-  - The Debug level is only available when env `RUNTIME=development`
+  - The log level. (LOG, TRACE, DEBUG, INFO, WARN, ERROR, FATAL, PANIC)
 - Logger Name
   - The name of the logger. Pass in the name of the component (struct name, method name) to help identify the source of the log
 - Message
@@ -34,7 +35,7 @@ The log is consisted of the following components
 
 The Logger shares a global context for the App's name. Set this by calling the `SetAppName` method from the logger. If the `SetAppName` is not called, then the default app name `GoApp` will be used.
 
-The logger can be instantiated using `logger.NewLogger`. At least the name of the logger must be given through the init options
+The logger can be instantiated using `ecl.NewLogger`. At least the name of the logger must be given through the init options
 
 ```golang
 import logger "github.com/jhseong7/ecl"
@@ -55,41 +56,84 @@ func main() {
 
 All Levels of the logger provide a formatting version `~f` thus allows a formatted string to be used in the log.
 
+### Log Levels
+
+ECL supports the following log levels:
+
+- All
+- Trace
+- Debug
+- Info
+- Warn
+- Error
+
+The log level can be set using `SetLogLevel` method from the logger. If the `SetLogLevel` is not called, then the default log level `All` will be used.
+
+```golang
+import "github.com/jhseong7/ecl"
+
+func main() {
+  // Set the global log level
+  ecl.SetLogLevel(ecl.Warn)
+  l := ecl.NewLogger(ecl.LoggerOption {
+    Name: "ThisLogger"
+  })
+
+  // Or set log level for a specific logger
+  l2 := ecl.NewLogger(ecl.LoggerOption {
+    Name: "Logger2"
+    LogLevel: ecl.All
+  })
+
+  // This will not be printed
+  l.Log("Hello world!")
+
+  // This will be printed
+  l2.Warn("Hello world!")
+}
+```
+
 ### Log style
 
 ECL supports the following log styles:
 
-- NestJS (default)
+- Default
+- NestJS
 - Spring
 
-The style can be set by calling the `SetLogStyle` method from the logger. If the `SetLogStyle` is not called, then the default style `NestJS` will be used.
+The style can be set using 2 methods:
+
+1. Set the environment variable `LOG_STYLE` to the desired style
+2. Set the global log style by calling the `SetLogStyle` method from the logger
+
+Calling the `SetLogStyle` method from the logger. If the `SetLogStyle` is not called, then the default style `Default` will be used.
 
 ```golang
 import logger "github.com/jhseong7/ecl"
 
 func main() {
   // Set the global log style
-  logger.SetLogStyle(logger.SpringStyle)
+  ecl.SetLogStyle(ecl.SpringStyle)
 
   // Or set log style for a specific logger
-  l := logger.NewLogger(logger.LoggerOption {
+  l := ecl.NewLogger(ecl.LoggerOption {
     Name: "ThisLogger"
-    LogStyle: logger.SpringStyle
+    LogStyle: ecl.SpringStyle
   })
 }
 ```
 
+Default log style:
+
+> [GoApp] _79528_ 2024-07-22T21:35:22+09:00 **LOG** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [default] - Log with no name
+
 NestJS style log:
 
-```shell
-[GoApp] 95000  - 07/22/2024, 2:56:02 PM    LOG [test] Hello, World!
-```
+> [GoApp] 95000 - 07/22/2024, 2:56:02 PM &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOG [test] Hello, World!
 
 Spring style log:
 
-```shell
-2024-07-22 14:53:16+09:00    LOG 91694 --- [main] test                 Hello, World!
-```
+> 2024-07-22 14:53:16+09:00 LOG 91694 --- [main] test Hello, World!
 
 ## Advanced usage
 
@@ -119,10 +163,10 @@ Any struct that satisfies the `ILogStream` interface can be injected with the lo
 For example, the default extrastream `FileLogStream` util can be initialized like below to write the same logs of the stdout to a rollover filestream
 
 ```golang
-l := logger.NewLogger(logger.LoggerOption{
+l := ecl.NewLogger(ecl.LoggerOption{
   Name: "test",
-  ExtraStreams: []logger.ILogStream{
-    logger.NewFileLogStream(logger.FileLogStreamOption{
+  ExtraStreams: []ecl.ILogStream{
+    ecl.NewFileLogStream(ecl.FileLogStreamOption{
       LogDirectory: "./logs",
       FileName:     "app",
     }),
@@ -133,19 +177,19 @@ l := logger.NewLogger(logger.LoggerOption{
 If you want to enable a specific extra stream global so every new logger has the custom extra stream.
 
 ```golang
-logger.AddGlobalExtraStream([]logger.ILogStream{
-  logger.NewFileLogStream(logger.FileLogStreamOption{
+ecl.AddGlobalExtraStream([]ecl.ILogStream{
+  ecl.NewFileLogStream(ecl.FileLogStreamOption{
     LogDirectory: "./logs",
     FileName:     "app",
   }),
 })
 
 // Both loggers below will write a file log
-l := logger.NewLogger(logger.LoggerOption {
+l := ecl.NewLogger(ecl.LoggerOption {
   Name: "Logger 1",
 })
 
-l2 := logger.NewLogger(logger.LoggerOption {
+l2 := ecl.NewLogger(ecl.LoggerOption {
   Name: "Logger 2",
 })
 ```
@@ -171,7 +215,7 @@ FileLogStreamOption struct {
   - The file name prefix of the log file. If the `RollOver` options is not enabled, then the file name would be `${FileName}.log`
   - If the Rollover is enabled, `${FileName}.${Date}.log` will be used
 - FileRollover
-  - If `true`, the logfile will move on when the date changes
+  - (WIP) If `true`, the logfile will move on when the date changes
 - MaxFileSizeKb (Not supported Yet)
   - If the Log's size reaches this size in KB, a new log file is created
 

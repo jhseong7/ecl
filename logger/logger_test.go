@@ -3,17 +3,19 @@ package logger_test
 import (
 	"testing"
 
-	logger "github.com/jhseong7/ecl"
+	"github.com/jhseong7/ecl/logger"
+	"github.com/jhseong7/ecl/message"
+	"github.com/jhseong7/ecl/stream"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 type TestStream struct {
-	logger.ILogStream
-	LastMessage logger.LogMessage
+	stream.ILogStream
+	LastMessage message.LogMessage
 }
 
-func (s *TestStream) Write(msg logger.LogMessage) {
+func (s *TestStream) Write(msg message.LogMessage) {
 	s.LastMessage = msg
 }
 
@@ -23,7 +25,7 @@ var _ = Describe("Coloured Logger", func() {
 	l := logger.NewLogger(logger.LoggerOption{
 		Name:   "test",
 		Silent: true,
-		ExtraStreams: []logger.ILogStream{
+		ExtraStreams: []stream.ILogStream{
 			ts,
 		},
 	})

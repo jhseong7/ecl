@@ -2,19 +2,21 @@
 package main
 
 import (
-	logger "github.com/jhseong7/ecl"
+	"github.com/jhseong7/ecl"
 )
 
 func main() {
-	l := logger.NewLogger(logger.LoggerOption{
+	ecl.SetLogLevel(ecl.All)
+
+	l := ecl.NewLogger(ecl.LoggerOption{
 		Name: "test",
 	})
 
-	l2 := logger.NewLogger(logger.LoggerOption{
+	l2 := ecl.NewLogger(ecl.LoggerOption{
 		Name: "OtherService",
 	})
 
-	l3 := logger.NewLogger(logger.LoggerOption{})
+	l3 := ecl.NewLogger(ecl.LoggerOption{})
 
 	l.Log("Hello, World!")
 	l2.Log("Hello, OtherService!")
@@ -23,4 +25,5 @@ func main() {
 	l.Trace("This is a trace")
 	l2.Debug("This is a debug")
 	l3.Log("Log with no name")
+	l.Info("This is a info")
 }

@@ -5,3 +5,7 @@ sample: ## Run the default sample
 	@go run cmd/sample/main.go
 sample-spring: ## Run the spring style sample
 	@go run cmd/spring-style/main.go
+sample-nestjs: ## Run the nestjs style sample
+	@go run cmd/nestjs-style/main.go
+sample-filestream: ## Run the filestream style sample
+	@go run cmd/filestream/main.go

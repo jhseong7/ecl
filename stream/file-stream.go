@@ -1,11 +1,15 @@
-package logger
+package stream
 
 import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"sync"
 	"time"
+
+	"github.com/jhseong7/ecl/message"
+	"github.com/jhseong7/ecl/style"
 )
 
 type (
@@ -14,6 +18,7 @@ type (
 		FileName      string
 		FileRollover  bool
 		MaxFileSizeKb int
+		LogStyle      style.LogStyle
 	}
 
 	FileLogStream struct {
@@ -28,6 +33,10 @@ type (
 		// Mutex to prevent multiple writes at the same time
 		mutex *sync.Mutex
 	}
+)
+
+var (
+	terminalStyleRegex = regexp.MustCompile("\x1b\\[[0-9;]*m")
 )
 
 func (s *FileLogStream) getLogFileName(prefix, date string) string {
@@ -86,21 +95,29 @@ func (s *FileLogStream) getFilePointer() *os.File {
 	return s.file
 }
 
-func (s *FileLogStream) Write(msg LogMessage) {
+func (s *FileLogStream) Write(msg message.LogMessage) {
 	// Use a mutex to prevent multiple writes at the same time
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	file := s.getFilePointer()
 
+	// Get the message --> and remove all terminal styleing
+	msgStr := style.GetMessageOfStyle(msg, s.options.LogStyle)
+	msgStr = terminalStyleRegex.ReplaceAllString(msgStr, "")
+
 	// Append the message to the file (with a new line)
-	// Format is "[prefix] time level [name] message"
-	fs := fmt.Sprintf("[%s] %s %6s [%s] %s\n", msg.AppName, msg.Time, msg.Level, msg.Name, msg.Msg)
-	fmt.Fprintln(file, fs)
+	fmt.Fprint(file, msgStr)
 }
 
 func NewFileLogStream(option FileLogStreamOption) *FileLogStream {
+	// Check if all options are given
+	if option.LogDirectory == "" || option.FileName == "" {
+		panic("NewFileLogStream: LogDirectory and FileName must be given")
+	}
+
 	return &FileLogStream{
 		options: option,
+		mutex:   &sync.Mutex{},
 	}
 }
