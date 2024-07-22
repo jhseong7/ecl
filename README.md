@@ -55,6 +55,42 @@ func main() {
 
 All Levels of the logger provide a formatting version `~f` thus allows a formatted string to be used in the log.
 
+### Log style
+
+ECL supports the following log styles:
+
+- NestJS (default)
+- Spring
+
+The style can be set by calling the `SetLogStyle` method from the logger. If the `SetLogStyle` is not called, then the default style `NestJS` will be used.
+
+```golang
+import logger "github.com/jhseong7/ecl"
+
+func main() {
+  // Set the global log style
+  logger.SetLogStyle(logger.SpringStyle)
+
+  // Or set log style for a specific logger
+  l := logger.NewLogger(logger.LoggerOption {
+    Name: "ThisLogger"
+    LogStyle: logger.SpringStyle
+  })
+}
+```
+
+NestJS style log:
+
+```shell
+[GoApp] 95000  - 07/22/2024, 2:56:02 PM    LOG [test] Hello, World!
+```
+
+Spring style log:
+
+```shell
+2024-07-22 14:53:16+09:00    LOG 91694 --- [main] test                 Hello, World!
+```
+
 ## Advanced usage
 
 ### Extra streams
@@ -138,3 +174,9 @@ FileLogStreamOption struct {
   - If `true`, the logfile will move on when the date changes
 - MaxFileSizeKb (Not supported Yet)
   - If the Log's size reaches this size in KB, a new log file is created
+
+## Run Samples
+
+Samples are located in the `cmd` directory. A Makefile is provided to easily run the samples.
+
+Run `make help` to see the available commands

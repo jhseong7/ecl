@@ -14,7 +14,7 @@ import (
 type (
 	LogMessage struct {
 		AppName string
-		Time    string
+		Time    time.Time
 		Name    string
 		Color   string
 		Level   string
@@ -34,6 +34,9 @@ type (
 
 		// Extra streams to write to
 		ExtraStreams []ILogStream
+
+		// Log style. Default is NestJsStyle
+		LogStyle string
 	}
 
 	Logger interface {
@@ -81,13 +84,25 @@ var (
 
 	// Global extra streams
 	globalExtraStreams []ILogStream
+
+	// global logStyle
+	globalLogStyle = NestJsStyle
 )
 
 func NewLogger(o LoggerOption) Logger {
 	var ss []ILogStream
 
 	if !o.Silent {
-		ss = append(ss, NewStdOutStream())
+		var logStyle string
+		if o.LogStyle != "" {
+			logStyle = o.LogStyle
+		} else {
+			logStyle = globalLogStyle
+		}
+
+		ss = append(ss, NewStdOutStream(StdOutStreamOption{
+			LogStyle: logStyle,
+		}))
 	}
 
 	// Append global extra streams
@@ -107,6 +122,11 @@ func SetAppName(prefix string) {
 	globalPrefix = prefix
 }
 
+// Set the global log style for the logger. If set, this style will be used for all log messages.
+func SetLogStyle(style string) {
+	globalLogStyle = style
+}
+
 // Add the streams to the global extra streams. This will be added to all loggers.
 func AddGlobalExtraStream(streams []ILogStream) {
 	globalExtraStreams = append(globalExtraStreams, streams...)
@@ -114,7 +134,7 @@ func AddGlobalExtraStream(streams []ILogStream) {
 
 func (l *LoggerImpl) writeToStream(color, logLevel, msg string) {
 	// Get the current time here so that all streams have the same time
-	ct := time.Now().Format(time.RFC3339)
+	ct := time.Now()
 
 	// For all streams
 	for _, stream := range l.Streams {

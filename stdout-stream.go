@@ -3,6 +3,8 @@ package logger
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 )
 
 type (
@@ -17,11 +19,11 @@ type (
 )
 
 const (
-	NestJsStyle = "nest"
-	SpringStyle = "spring"
+	NestJsStyle string = "nest"
+	SpringStyle string = "spring"
 )
 
-func colorize(color string, msg string) string {
+func colourize(color string, msg string) string {
 	return fmt.Sprintf("%s%s%s", color, msg, Reset)
 }
 
@@ -36,19 +38,27 @@ func padMinWidthLeft(s string, n int) string {
 // Pad the min width of a string to the back
 func padMinWidthRight(s string, n int) string {
 	if len(s) < n {
-		s = fmt.Sprintf("%-*s%s", n-len(s), "", s)
+		s = fmt.Sprintf("%s%*s", s, n-len(s), "")
 	}
 	return s
 }
 
 func printNestStyleLog(msg LogMessage) {
+	pid := os.Getpid()
+
+	// If the Name is empty, then set it to the default value
+	if msg.Name == "" {
+		msg.Name = "default"
+	}
+
 	fmt.Printf(
-		"%s %s %s %s %s\n",                                 // Format string
-		colorize(msg.Color, "["+msg.AppName+"]"),           // Set colour
-		colorize(White, msg.Time),                          // Add the time (time is white)
-		colorize(msg.Color, padMinWidthLeft(msg.Level, 6)), // Add the log level
-		colorize(Yellow, "["+msg.Name+"]"),                 // Add the log name (name of the logger is yellow)
-		colorize(msg.Color, msg.Msg),                       // Add the message
+		"%s %-7s - %s %s %s %s\n",                                    // Format string
+		colourize(msg.Color, "["+msg.AppName+"]"),                    // Set colour
+		colourize(msg.Color, padMinWidthRight(strconv.Itoa(pid), 6)), // Add the process id
+		colourize(White, msg.Time.Format("01/02/2006, 3:04:05 PM")),  // Add the time (time is white)
+		colourize(msg.Color, padMinWidthLeft(msg.Level, 6)),          // Add the log level
+		colourize(Yellow, "["+msg.Name+"]"),                          // Add the log name (name of the logger is yellow)
+		colourize(msg.Color, msg.Msg),                                // Add the message
 	)
 }
 
@@ -56,18 +66,20 @@ func printSpringStyleLog(msg LogMessage) {
 	pid := os.Getpid()
 	thread := "main" // Thread is always main
 
+	timeStr := msg.Time.Format(time.RFC3339)
+
 	// Split the date-time
-	date := msg.Time[:10]
-	time := msg.Time[11:]
+	date := timeStr[:10]
+	time := timeStr[11:]
 
 	fmt.Printf(
-		"%s %s %s --- %s %s %s\n",                          // <date-time>  <log level> <process id> --- [<thread>] <logger> : <message>
-		colorize(White, date+" "+time),                     // Add the date-time (time is white)
-		colorize(msg.Color, padMinWidthLeft(msg.Level, 6)), // Add the log level
-		colorize(White, fmt.Sprintf("%d", pid)),            // Add the process id
-		colorize(Yellow, "["+thread+"]"),                   // Add the thread
-		colorize(Yellow, padMinWidthRight(msg.Name, 20)),   // Add the log name (name of the logger is yellow)
-		colorize(msg.Color, msg.Msg),                       // Add the message
+		"%s %s %s --- %s %s %s\n",                           // <date-time>  <log level> <process id> --- [<thread>] <logger> : <message>
+		colourize(White, date+" "+time),                     // Add the date-time (time is white)
+		colourize(msg.Color, padMinWidthLeft(msg.Level, 6)), // Add the log level
+		colourize(White, fmt.Sprintf("%d", pid)),            // Add the process id
+		colourize(Yellow, "["+thread+"]"),                   // Add the thread
+		colourize(Yellow, padMinWidthRight(msg.Name, 20)),   // Add the log name (name of the logger is yellow)
+		colourize(msg.Color, msg.Msg),                       // Add the message
 	)
 }
 
