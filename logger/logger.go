@@ -3,6 +3,7 @@ package logger
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/jhseong7/ecl/message"
@@ -75,8 +76,8 @@ const (
 )
 
 var (
-	// Global prefix for the logger. Default is "GoApp"
-	globalPrefix = "GoApp"
+	// Global prefix
+	globalAppName string
 
 	// Global extra streams
 	globalExtraStreams []stream.ILogStream
@@ -119,10 +120,16 @@ func NewLogger(o LoggerOption) Logger {
 
 	// Set appName
 	var appName string
-	if o.AppName != "" {
+	if o.AppName != "" { // If given
 		appName = o.AppName
+	} else if globalAppName != "" { // If global is set --> use global
+		appName = globalAppName
+	} else if envAppName := os.Getenv("ECL_APP_NAME"); envAppName != "" {
+		// If the app name is not given --> get from the env ECL_APP_NAME
+		appName = envAppName
 	} else {
-		appName = globalPrefix
+		// If the app name is not given --> set to ECL (default)
+		appName = "ECL"
 	}
 
 	return &LoggerImpl{
@@ -139,8 +146,8 @@ func SetLogLevel(level LogLevel) {
 }
 
 // Set the global prefix for the logger. If set, this name will be added to all log messages as a prefix.
-func SetAppName(prefix string) {
-	globalPrefix = prefix
+func SetAppName(appName string) {
+	globalAppName = appName
 }
 
 // Set the global log style for the logger. If set, this style will be used for all log messages.

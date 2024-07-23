@@ -47,9 +47,15 @@ func padMinWidthRight(s string, n int) string {
 	return s
 }
 
+// Pad both sides of the string so the message is centered
+func padCenter(s string, n int) string {
+	if len(s) < n {
+		s = fmt.Sprintf("%*s%s%*s", (n-len(s))/2, "", s, (n-len(s))/2, "")
+	}
+	return s
+}
+
 // Get the ECL default style log in string
-//
-// e.g.) [AppName] <pid> <time> <level> [<name>] <msg>
 func getDefaultStyleLog(msg message.LogMessage) string {
 	pid := os.Getpid()
 
@@ -59,13 +65,13 @@ func getDefaultStyleLog(msg message.LogMessage) string {
 	}
 
 	return fmt.Sprintf(
-		"%s %s %s %s %s - %s\n",                                              // Format string
-		colourize(msg.Color, bold("["+msg.AppName+"]")),                      // Set colour
-		colourize(msg.Color, italic(padMinWidthRight(strconv.Itoa(pid), 6))), // Add the process id
-		colourize(White, msg.Time.Format(time.RFC3339)),                      // Add the time (time is white)
-		colourize(msg.Color, bold(padMinWidthRight(msg.Level, 6))),           // Add the log level
-		colourize(Yellow, padMinWidthRight("["+msg.Name+"]", 20)),            // Add the log name (name of the logger is yellow)
-		colourize(msg.Color, msg.Msg),                                        // Add the message
+		"%s %s %s %s %s - %s\n", // Format string
+		colourize(msg.Color, "| "+bold(padMinWidthRight(msg.AppName, 12)+" |")), // Set name of app (min 12 characters)
+		colourize(msg.Color, italic(padMinWidthRight(strconv.Itoa(pid), 6))),    // Add the process id
+		colourize(White, msg.Time.Format(time.RFC3339)),                         // Add the time (time is white)
+		colourize(msg.Color, bold(padMinWidthRight(msg.Level, 6))),              // Add the log level
+		colourize(Yellow, padMinWidthRight("["+msg.Name+"]", 20)),               // Add the log name (name of the logger is yellow)
+		colourize(msg.Color, msg.Msg),                                           // Add the message
 	)
 }
 
