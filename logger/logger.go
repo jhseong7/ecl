@@ -77,7 +77,7 @@ const (
 
 var (
 	// Global prefix
-	globalAppName string
+	globalAppName string = "ECL"
 
 	// Global extra streams
 	globalExtraStreams []stream.ILogStream
@@ -87,6 +87,15 @@ var (
 
 	globalLoglevel LogLevel
 )
+
+// Init function when loading the package
+func init() {
+	// Set the global app name with the env ECL_APP_NAME if given
+	if envAppName := os.Getenv("ECL_APP_NAME"); envAppName != "" {
+		// If the app name is not given --> get from the env ECL_APP_NAME
+		globalAppName = envAppName
+	}
+}
 
 func NewLogger(o LoggerOption) Logger {
 	var ss []stream.ILogStream
@@ -118,25 +127,11 @@ func NewLogger(o LoggerOption) Logger {
 		loglevel = globalLoglevel
 	}
 
-	// Set appName
-	var appName string
-	if o.AppName != "" { // If given
-		appName = o.AppName
-	} else if globalAppName != "" { // If global is set --> use global
-		appName = globalAppName
-	} else if envAppName := os.Getenv("ECL_APP_NAME"); envAppName != "" {
-		// If the app name is not given --> get from the env ECL_APP_NAME
-		appName = envAppName
-	} else {
-		// If the app name is not given --> set to ECL (default)
-		appName = "ECL"
-	}
-
 	return &LoggerImpl{
 		name:     o.Name,
 		Streams:  ss,
 		loglevel: loglevel,
-		appName:  appName,
+		appName:  o.AppName,
 	}
 }
 
@@ -164,11 +159,21 @@ func (l *LoggerImpl) writeToStream(color, logLevel, msg string) {
 	// Get the current time here so that all streams have the same time
 	ct := time.Now()
 
+	// If the app name is not given --> get from the global app name
+	// Always check this as there are cases where users want to use the global app name
+	// for loggers initialized before the global app name is set
+	var appName string
+	if l.appName == "" {
+		appName = globalAppName
+	} else {
+		appName = l.appName
+	}
+
 	// For all streams
 	for _, stream := range l.Streams {
 		// Write the log message
 		stream.Write(message.LogMessage{
-			AppName: l.appName,
+			AppName: appName,
 			Name:    l.name,
 			Time:    ct,
 			Color:   color,

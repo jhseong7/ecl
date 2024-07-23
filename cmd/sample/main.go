@@ -6,6 +6,12 @@ import (
 )
 
 func main() {
+	el := ecl.NewLogger(ecl.LoggerOption{
+		Name: "EnvLogger",
+	})
+
+	el.Log("App name set by env")
+
 	ecl.SetLogLevel(ecl.All)
 	ecl.SetAppName("ExampleApp")
 
@@ -21,6 +27,8 @@ func main() {
 		AppName: "Another",
 		Name:    "Service",
 	})
+
+	el.Log("App name overridden by SetAppName")
 
 	l.Log("Hello, World!")
 	l2.Log("Hello, OtherService!")
