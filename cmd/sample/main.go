@@ -7,23 +7,27 @@ import (
 
 func main() {
 	ecl.SetLogLevel(ecl.All)
+	ecl.SetAppName("ExampleApp")
 
 	l := ecl.NewLogger(ecl.LoggerOption{
-		Name: "test",
+		Name: "Example",
 	})
 
 	l2 := ecl.NewLogger(ecl.LoggerOption{
 		Name: "OtherService",
 	})
 
-	l3 := ecl.NewLogger(ecl.LoggerOption{})
+	l3 := ecl.NewLogger(ecl.LoggerOption{
+		AppName: "Another",
+		Name:    "Service",
+	})
 
 	l.Log("Hello, World!")
 	l2.Log("Hello, OtherService!")
 	l.Warn("This is a warning")
-	l2.Error("This is an error")
+	l.Error("This is an error")
 	l.Trace("This is a trace")
-	l2.Debug("This is a debug")
-	l3.Log("Log with no name")
+	l.Debug("This is a debug")
 	l.Info("This is a info")
+	l3.Log("Logger with alternate app name")
 }

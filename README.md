@@ -4,13 +4,9 @@
 
 This is a utility logger that print the logs in with colour of the log level.
 
-Example:
+Example: ![Example Image](./docs/example.png)
 
-<span style='color:green'>[YourApp] 2024-01-30T10:41:25+09:00 LOG [SomeFunction] Hello, world!</span>
-
-<span style='color:yellow'>[YourApp] 2024-01-30T10:41:25+09:00 WARN [OtherFunction] Hello, world!</span>
-
-<span style='color:red'>[YourApp] 2024-01-30T10:41:25+09:00 ERROR [MaybeMain] Hello, world!</span>
+Please note that is project is still in work-in-progress.
 
 ## Log structure
 
@@ -125,19 +121,19 @@ func main() {
 
 Default log style:
 
-> [GoApp] _79528_ 2024-07-22T21:35:22+09:00 **LOG** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [default] - Log with no name
+![Example Image](./docs/example.png)
 
 NestJS style log:
 
-> [GoApp] 95000 - 07/22/2024, 2:56:02 PM &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOG [test] Hello, World!
+![Example Image](./docs/nestjs-style.png)
 
 Spring style log:
 
-> 2024-07-22 14:53:16+09:00 LOG 91694 --- [main] test Hello, World!
+![Example Image](./docs/spring-style.png)
 
 ## Advanced usage
 
-### Extra streams
+### Extra streams (Custom Logger)
 
 The logger provides an interface spec that the user can provide to acquire the logs and manipulate in their own manner.
 
