@@ -68,7 +68,7 @@ func getDefaultStyleLog(msg message.LogMessage) string {
 		"%s %s %s %s %s - %s\n", // Format string
 		colourize(msg.Color, "| "+bold(padMinWidthRight(msg.AppName, 12)+" |")), // Set name of app (min 12 characters)
 		colourize(msg.Color, italic(padMinWidthRight(strconv.Itoa(pid), 6))),    // Add the process id
-		colourize(White, msg.Time.Format(time.RFC3339)),                         // Add the time (time is white)
+		msg.Time.Format(time.RFC3339),                                           // Add the time (time is white)
 		colourize(msg.Color, bold(padMinWidthRight(msg.Level, 6))),              // Add the log level
 		colourize(Yellow, padMinWidthRight("["+msg.Name+"]", 20)),               // Add the log name (name of the logger is yellow)
 		colourize(msg.Color, msg.Msg),                                           // Add the message
@@ -88,7 +88,7 @@ func getNestjsStyleLog(msg message.LogMessage) string {
 		"%s %-7s - %s %s %s %s\n",                                    // Format string
 		colourize(msg.Color, "["+msg.AppName+"]"),                    // Set colour
 		colourize(msg.Color, padMinWidthRight(strconv.Itoa(pid), 6)), // Add the process id
-		colourize(White, msg.Time.Format("01/02/2006, 3:04:05 PM")),  // Add the time (time is white)
+		msg.Time.Format("01/02/2006, 3:04:05 PM"),                    // Add the time (time is white)
 		colourize(msg.Color, padMinWidthLeft(msg.Level, 6)),          // Add the log level
 		colourize(Yellow, "["+msg.Name+"]"),                          // Add the log name (name of the logger is yellow)
 		colourize(msg.Color, msg.Msg),                                // Add the message
@@ -108,7 +108,7 @@ func getSpringStyleLog(msg message.LogMessage) string {
 
 	return fmt.Sprintf(
 		"%s %s %s --- %s %s %s\n",                           // <date-time>  <log level> <process id> --- [<thread>] <logger> : <message>
-		colourize(White, date+" "+time),                     // Add the date-time (time is white)
+		date+" "+time,                                       // Add the date-time (time is white)
 		colourize(msg.Color, padMinWidthLeft(msg.Level, 6)), // Add the log level
 		colourize(White, fmt.Sprintf("%d", pid)),            // Add the process id
 		colourize(Yellow, "["+thread+"]"),                   // Add the thread
